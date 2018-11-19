@@ -12,7 +12,7 @@ function pidstate=pid_loop(pidstate)
 % Syntax:  [output1,output2] = function_name(input1,input2,input3)
 %
 % Inputs:
-%   pidstate.meas 
+%   pidstate.integrator     - double used to initalize integerator;
 %   pidstate.setpt          - desired setpoint
 %   pidstate.k_int=         -integerator gain in [out]/(sec*[pidstate.erroror])
 %   pidstate.k_prop=        -proportional gain with unity output scaling
@@ -24,7 +24,6 @@ function pidstate=pid_loop(pidstate)
 %
 % Outputs:
 %    pidstate.ctr_output - float,actuator control  between pidstate.outlims
-%    pidstate.integrator     - double used to initalize integerator;
 % 
 % Example: 
 % pidstate.ctr_output=0;
@@ -97,11 +96,9 @@ if pidstate.initalize
 end
 
 old_time=pidstate.time;
-if isfield(pidstate,'set_time')
-    time_ctr_start=pidstate.set_time;
-else
-    time_ctr_start=posixtime(datetime('now'));
-end
+
+time_ctr_start=posixtime(datetime('now'));
+
 pidstate.loop_time=(time_ctr_start-old_time);
 if pidstate.verbose>2,fprintf('feedback bandwidth %.2f\n',1/pidstate.loop_time), end
 
