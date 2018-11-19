@@ -25,5 +25,6 @@ This conde provides a convenient PID function for running your own computer in t
       - psrn/Xcorr would be interesting
       - using threads to keep the speed up?
 - [ ] Smooth change of gains
-  - back calculate the integeral to give the same output as before the change in gains
+  - Bumpless operation
+  - back calculate the integeral to give the same output as before the change in the prop gain
   
