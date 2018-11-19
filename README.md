@@ -3,9 +3,23 @@
 A reasonably robust & fast software PID controller
 
 This conde provides a convenient PID function for running your own computer in the loop feedback, a feedback freqeuncy of 200Hz is acheivable with modest hardware.
-While PID is a very simple algorithm the very large dynamic range of software controllers means that care must be taken to prevent integeral windup of the controller under actuator saturation.
+
+## Features
+- Integeral windup prevention using integeral increment sign sensitve attenuation function
+  - if the increment will increase the output towards the maximum then the increment is heavily attenuated (with a logistic dependence to the edge)
+  - if it will move the output towards the middle of the range then the increment is used in full
+- slew rate limitng by back calcluation of the integeral
+  - can also specify the maximum output step
+  
 
 ## To Do
-- [ ] Build test scripts
-  - may need to add in the ability to external tell what the time is.
+- [x] Basic Test script
+  - ability to tell the function what the time is. (to overide the realtime(ish) nature)
   - simple heater & disturbance plant model
+- [ ] Measuring loop gain
+      - add in some small function and look how it comes back through the loop
+      - psrn/Xcorr would be interesting
+      - using threads to keep the speed up?
+- [ ] Smooth change of gains
+  - back calculate the integeral to give the same output as before the change in gains
+  
