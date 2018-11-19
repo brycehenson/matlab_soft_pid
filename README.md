@@ -16,6 +16,9 @@ This conde provides a convenient PID function for running your own computer in t
 - [x] Basic Test script
   - ability to tell the function what the time is. (to overide the realtime(ish) nature)
   - simple heater & disturbance plant model
+- Advanced tests
+  - bandwith limits for actuator
+  - specify arbitraty plant model
 - [ ] Measuring loop gain
       - add in some small function and look how it comes back through the loop
       - psrn/Xcorr would be interesting
