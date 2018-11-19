@@ -19,6 +19,7 @@ This conde provides a convenient PID function for running your own computer in t
 - Advanced tests
   - bandwith limits for actuator
   - specify arbitraty plant model
+  - better disturbances, periodic function or specified drift model
 - [ ] Measuring loop gain
       - add in some small function and look how it comes back through the loop
       - psrn/Xcorr would be interesting
