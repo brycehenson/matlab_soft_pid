@@ -2,7 +2,7 @@
 **Bryce M. Henson** 
 A reasonably robust & fast software PID controller
 
-This conde provides a convenient PID function for running your own computer in the loop feedback, a feedback freqeuncy of 200Hz is acheivable with modest hardware.
+This code provides a convenient PID function for running your own computer in the loop feedback, a feedback freqeuncy of 200Hz is acheivable with modest hardware.
 
 ## Features
 - Integeral windup prevention using integeral increment sign sensitve attenuation function
@@ -16,7 +16,13 @@ This conde provides a convenient PID function for running your own computer in t
 - [x] Basic Test script
   - ability to tell the function what the time is. (to overide the realtime(ish) nature)
   - simple heater & disturbance plant model
-- Advanced tests
+- [ ] convert code to a class instead of a function
+- [ ] usage examples
+  - real life examples
+- [ ] add in derivative term
+- [ ] feed foward terms
+  - value veclocity and acceleration compensation
+- [ ] Advanced tests
   - bandwith limits for actuator
   - specify arbitraty plant model
   - better disturbances, periodic function or specified drift model
@@ -27,4 +33,5 @@ This conde provides a convenient PID function for running your own computer in t
 - [ ] Smooth change of gains
   - Bumpless operation
   - back calculate the integeral to give the same output as before the change in the prop gain
-  
+- [ ] learning controller
+  - adaptive feed foward terms based on on the fly fitting
