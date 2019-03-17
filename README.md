@@ -1,7 +1,7 @@
 # matlab_soft_pid
 **Bryce M. Henson** 
 A reasonably robust & fast software PID controller  
-Status: This Code **not ready for use in other projects**. Testing is **not** implemented and.
+**Status:** This Code is **not ready for use in other projects**. Testing is **not** implemented.
 
 This code provides a convenient PID function for running your own computer in the loop feedback, a feedback freqeuncy of 200Hz is acheivable with modest hardware.
 
