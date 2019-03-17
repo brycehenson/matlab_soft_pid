@@ -1,6 +1,7 @@
 # matlab_soft_pid
 **Bryce M. Henson** 
-A reasonably robust & fast software PID controller
+A reasonably robust & fast software PID controller  
+Status: This Code **not ready for use in other projects**. Testing is **not** implemented and.
 
 This code provides a convenient PID function for running your own computer in the loop feedback, a feedback freqeuncy of 200Hz is acheivable with modest hardware.
 
@@ -13,6 +14,8 @@ This code provides a convenient PID function for running your own computer in th
   
 
 ## To Do
+contributors welcome! Drop me an [email](mailto:bryce.m.henson+github.matlab_soft_pid@gmail.com?subject=I%20would%20Like%20to%20Contribute[github][matlab_soft_pid]) .
+
 - [x] Basic Test script
   - ability to tell the function what the time is. (to overide the realtime(ish) nature)
   - simple heater & disturbance plant model
