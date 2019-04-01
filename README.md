@@ -38,3 +38,6 @@ contributors welcome! Drop me an [email](mailto:bryce.m.henson+github.matlab_sof
   - back calculate the integeral to give the same output as before the change in the prop gain
 - [ ] learning controller
   - adaptive feed foward terms based on on the fly fitting
+
+## Resources
+- [How to Build a Fixed-Point PI Controller That Just Works](https://www.embeddedrelated.com/showarticle/121.php)
