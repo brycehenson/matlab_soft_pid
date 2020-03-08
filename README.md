@@ -1,5 +1,5 @@
 # matlab_soft_pid
-**Bryce M. Henson** 
+**[Bryce M. Henson](https://github.com/brycehenson)**  
 A reasonably robust & fast software PID controller  
 **Status:** This Code is **not ready for use in other projects**. Testing is **not** implemented.
 
