@@ -47,8 +47,9 @@ function pidstate=pid_loop(pidstate)
 % - higher order integeral methods
 %   -[x] trapz method
 %   -[ ] gen high order method  
-% -[ ] feed forward terms
-% -[ ] optional bumpless setpt
+% - feed forward terms
+%   -[x] static polynomial
+%   -[x] setpt change
 % -[ ] Derivative term
 % -[ ] this would probably be better written as a class
 % -[ ] slew lim always activates on first loop
@@ -82,6 +83,9 @@ if pidstate.initalize
        pidstate.feed_forward.steady_state=nan;
        pidstate.feed_forward.setpt_impulse=nan;
     end 
+    if ~isfield(pidstate.feed_forward,'setpt_impulse')
+        pidstate.feed_forward.setpt_impulse=nan;
+    end
     if ~isfield(pidstate,'verbose')
         pidstate.verbose=0;
     end   
@@ -96,7 +100,12 @@ if pidstate.initalize
     if ~isfield(pidstate,'bumpless')
         warning('\nbumpless not specified setting to true')
         pidstate.bumpless=true;
+    else
+        if ~isnan(pidstate.feed_forward.setpt_impulse)
+            warning('impulse ff is not bumpless! set pidstate.feed_forward.setpt_impulse to nan')
+        end
     end
+    
     if ~isfield(pidstate,'dout_lim')
         warning('\nno output delta specified setting as inf')
         pidstate.dout_lim=inf;
@@ -111,7 +120,10 @@ if pidstate.initalize
     else
         pidstate.time=posixtime(datetime('now'));
     end
-
+    %convert nan to zero
+    if isnan(pidstate.feed_forward.setpt_impulse)
+        pidstate.feed_forward.setpt_impulse=0;
+    end
     pidstate.aw=1;    
     % back calulate the integrator value to match the ctr_out to the comanded value
     pidstate.error=pidstate.meas-pidstate.setpt;
@@ -121,6 +133,7 @@ if pidstate.initalize
     pidstate.initalize=false;
     pidstate.k_prop_prev=pidstate.k_prop;
     pidstate.setpt_prev=pidstate.setpt;
+    pidstate.ff_impulse=0;
 end %pidstate.initalize
 
 old_time=pidstate.time;
@@ -138,15 +151,14 @@ pidstate.error_hist=pidstate.error;
 logist=@(x) 1./(1+exp(-x));%build this in as a initalization 
 %scale the anti windup range to a unit output range
 scaled_aw_range=pidstate.aw_thresh_range/range(pidstate.outlims);
-%needs to be defined for di==0
 aw_fun_range=@(x,y) (logist((x-scaled_aw_range)*10/scaled_aw_range))*(y<=0)...
-    +(1-logist((x-1+scaled_aw_range)*10/scaled_aw_range))*(y>0);
-
+    +(1-logist((x-1+scaled_aw_range)*10/scaled_aw_range))*(y>0);%needs to be defined for di==0
 % xvals=linspace(0,1,1e4);
 % plot(xvals,aw_fun_range(xvals,1))
 % hold on
 % plot(xvals,aw_fun_range(xvals,-1))
 % hold off
+
 
 if pidstate.verbose>1
     fprintf('previous control output %.3f\n',pidstate.ctr_prev)
@@ -154,19 +166,38 @@ end
 
 pidstate.error=pidstate.meas-pidstate.setpt;
 if pidstate.verbose>1,fprintf('error %.3f\n',pidstate.error), end
+%the integeral may be calculated using a rectangle,trapezoidal, or higher order approaches
+%higher order methods effectively add a lag to the integeral but give back precision
+%for the moment a triangle rule is a good compomise
 %rectangle rule
 %di=pidstate.k_int*pidstate.loop_time*pidstate.error;
+%triangle rule
 di=pidstate.k_int*pidstate.loop_time*(pidstate.error+pidstate.error_hist)/2;
 
-if  pidstate.setpt_prev~=pidstate.setpt && (numel(pidstate.feed_forward.setpt_impulse)>1 || ~isnan(pidstate.feed_forward.setpt_impulse))
-    di=di+diff([pidstate.setpt_prev,pidstate.setpt])*polyval(pidstate.feed_forward.setpt_impulse,mean([pidstate.setpt,pidstate.setpt_prev]));
+if abs(pidstate.ff_impulse)>0 && pidstate.loop_time>0
+    temp_imp_prev=pidstate.ff_impulse;
+    temp_imp_new=temp_imp_prev-pidstate.ctr_prev*pidstate.loop_time;
+    if sign(temp_imp_prev)~=temp_imp_new
+        pidstate.ff_impulse=0;
+    else
+         pidstate.ff_impulse=temp_imp_new;
+    end
+    
 end
+
+if  pidstate.setpt_prev~=pidstate.setpt && (numel(pidstate.feed_forward.setpt_impulse)>1 || ~isnan(pidstate.feed_forward.setpt_impulse))
+    pidstate.ff_impulse=pidstate.ff_impulse+...
+    diff([pidstate.setpt_prev,pidstate.setpt])*...
+    polyval(pidstate.feed_forward.setpt_impulse,mean([pidstate.setpt,pidstate.setpt_prev]));
+end
+
 
 %could save this scaled control value to prevent recalc, would come with some issues if outlims are changed
 scaled_last_control=(pidstate.ctr_prev-pidstate.outlims(1))/range(pidstate.outlims);
 if pidstate.verbose>1,fprintf('scaled last control %.3f\n',scaled_last_control), end
 
-pidstate.aw=aw_fun_range(scaled_last_control,di);
+%cancel the integeral accumulation when the impulse ff is applied
+pidstate.aw=aw_fun_range(scaled_last_control,di)*(abs(pidstate.ff_impulse)==0);
 if pidstate.verbose>1, fprintf('anti windup %.3f\n',pidstate.aw), end
 
 di=di*pidstate.aw; %actuator range anti windup
@@ -177,9 +208,9 @@ pidstate.integrator=pidstate.integrator+di;
 pidstate.deriv=pidstate.error-pidstate.error_hist;
 
 if ~isnan(pidstate.feed_forward.steady_state)
-    pidstate.ff=polyval(pidstate.feed_forward.steady_state,pidstate.setpt);
+    pidstate.ff_static=polyval(pidstate.feed_forward.steady_state,pidstate.setpt);
 else
-    pidstate.ff=0;
+    pidstate.ff_static=0;
 end
 %if the propoptional gain has changed then back calc a correction to the integral
 %correcting the integeral here is not strictly required if the slew limit is also being used
@@ -193,14 +224,12 @@ if pidstate.bumpless && pidstate.k_prop_prev~=pidstate.k_prop
     temp_int_bumpless=(pidstate.k_prop_prev-pidstate.k_prop)*pidstate.error;
     pidstate.integrator=pidstate.integrator+temp_int_bumpless;
     clear('temp_int_bumpless')
-    
-    %TODO:
 end
 pidstate.integrator=min(max(-pidstate.int_lim,pidstate.integrator),pidstate.int_lim);
 pidstate.ctr_output=pidstate.integrator+...
                     pidstate.k_prop*pidstate.error...
                     +pidstate.k_deriv*pidstate.deriv...
-                    +pidstate.ff;%-aw_rate*k_aw_rate);
+                    +pidstate.ff_static;%-aw_rate*k_aw_rate);
 
 pidstate.delt_out=(pidstate.ctr_prev-pidstate.ctr_output);
 pidstate.slew=pidstate.delt_out/(pidstate.loop_time);
@@ -215,7 +244,7 @@ if abs(pidstate.delt_out)>combined_delt_lim
     pidstate.integrator=pidstate.ctr_prev-combined_delt_lim*sign(pidstate.slew)...
         -pidstate.k_prop*pidstate.error...
         -pidstate.k_deriv*pidstate.deriv...
-        -pidstate.ff;
+        -pidstate.ff_static;
     %fprintf('slew mod int %f\n',pidstate.integrator)
     pidstate.aw_slew=1; %not a anti windup should just call slew lim
 else
@@ -227,7 +256,15 @@ end
 pidstate.ctr_output=pidstate.integrator+...
                     pidstate.k_prop*pidstate.error...
                     +pidstate.k_deriv*pidstate.deriv...
-                    +pidstate.ff;%-aw_rate*k_aw_rate);     
+                    +pidstate.ff_static;
+if pidstate.loop_time>0 && abs(pidstate.ff_impulse)>0
+    pidstate.ctr_output=pidstate.ctr_output+pidstate.ff_impulse/pidstate.loop_time;
+end
+% if abs(pidstate.ff_impulse)>abs(pidstate.loop_time*pidstate.outlims(1+(pidstate.ff_impulse>0)))
+%     pidstate.ctr_output=inf*sign(pidstate.ff_impulse);
+% else
+%     pidstate.ff_impulse=0;
+% end
 pidstate.ctr_output=min(max(pidstate.outlims(1),pidstate.ctr_output),pidstate.outlims(2));
 pidstate.slew=(pidstate.ctr_prev-pidstate.ctr_output)/(pidstate.loop_time);
 if pidstate.verbose>1 && pidstate.aw_slew
